@@ -71,8 +71,8 @@ func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 				<div class="container" style="text-align: center">
 					<h4>User: {{.Assigns.Name}}</h4>
 					<h2>Temperature: {{.Assigns.Temperature}}C</h2>
-					<div>
-						status: {{.Assigns.Status}}
+					<div live-update="prepend">
+						{{.Assigns.Status}}
 					</div>
 					<div style="padding-top: 20px">
 						<button live-click="temp-up" class="btn btn-success btn-sm">+0.1C</button> - 
