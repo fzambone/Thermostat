@@ -62,6 +62,16 @@ func tempChange(ctx context.Context, s live.Socket, p live.Params) (interface{},
 	return model, nil
 }
 
+// saveEvent sends chat like event
+func saveEvent(ctx context.Context, s live.Socket, p live.Params) (interface{}, error) {
+	model := NewThermoModel(ctx, s)
+	message := p.String("message")
+
+	s.Broadcast("status", model.Name+": "+message)
+
+	return model, nil
+}
+
 func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 	tmpl, err := template.New("thermo").Parse(`
 		<html>
@@ -88,6 +98,12 @@ func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 					</div>
 					<div style="border: 1px solid black; padding: 5px">
 						{{.Assigns.Time}}
+					</div>
+					<div style="padding: 10px">
+						<form live-submit="save">
+							<input type="text" name="message" />
+							<input type="submit" value="send..." class="btn btn-success btn-sm" />
+						</form>
 					</div>
 					<div live-update="prepend">
 						{{.Assigns.Status}}
@@ -118,6 +134,7 @@ func main() {
 	h.HandleEvent("temp-up", tempUp)
 	h.HandleEvent("temp-down", tempDown)
 	h.HandleEvent("temp-change", tempChange)
+	h.HandleEvent("save", saveEvent)
 	h.HandleSelf("status", func(ctx context.Context, s live.Socket, data interface{}) (interface{}, error) {
 		model := NewThermoModel(ctx, s)
 		model.Status = data.(string)
