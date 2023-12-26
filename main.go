@@ -89,8 +89,8 @@ func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 						{{end}}
 					</div>
 					<div style="padding-top: 20px">
-						<button live-click="temp-up" class="btn btn-success btn-sm">+0.1C</button> - 
-						<button live-click="temp-down" class="btn btn-success btn-sm">-0.1C</button>
+						<button live-click="temp-up" live-window-keyup="temp-up" live-key="ArrowUp" class="btn btn-success btn-sm">+0.1C</button> - 
+						<button live-click="temp-down" live-window-keydown="temp-down" live-key="ArrowDown" class="btn btn-success btn-sm">-0.1C</button>
 					</div>
 					<div style="padding-top: 20px; padding-bottom: 20px">
 						<button live-click="temp-change" live-value-temperature="2" class="btn btn-success btn-sm">+2C</button> - 
@@ -100,8 +100,8 @@ func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 						{{.Assigns.Time}}
 					</div>
 					<div style="padding: 10px">
-						<form live-submit="save">
-							<input type="text" name="message" />
+						<form live-submit="save" live-hook="submit">
+							<input type="text" name="message" />&#160;
 							<input type="submit" value="send..." class="btn btn-success btn-sm" />
 						</form>
 					</div>
@@ -111,6 +111,17 @@ func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 				</div>
 			<!-- Include to make live work -->
 			<script src="/live.js"></script>
+			<script>
+				window.Hooks = {
+					"submit": {
+						mounted: function() {
+							this.el.addEventListener("submit", () => {
+								this.el.querySelector("input").value = "";
+							});
+						}
+					}
+				};
+			</script>
 			</body>
 		</html>
 	`)
