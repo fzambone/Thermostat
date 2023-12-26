@@ -9,12 +9,14 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 type ThermoModel struct {
 	Name        string
 	Temperature float32
 	Status      string
+	Time        string
 }
 
 func NewThermoModel(ctx context.Context, s live.Socket) *ThermoModel {
@@ -23,7 +25,7 @@ func NewThermoModel(ctx context.Context, s live.Socket) *ThermoModel {
 	if !ok {
 		m = &ThermoModel{
 			Name:        live.Request(ctx).URL.Query().Get("name"),
-			Temperature: 23.1,
+			Temperature: 17.5,
 			Status:      "-",
 		}
 	}
@@ -71,16 +73,24 @@ func render(ctx context.Context, data *live.RenderContext) (io.Reader, error) {
 				<div class="container" style="text-align: center">
 					<h4>User: {{.Assigns.Name}}</h4>
 					<h2>Temperature: {{.Assigns.Temperature}}C</h2>
-					<div live-update="prepend">
-						{{.Assigns.Status}}
+					<div>
+						{{if gt .Assigns.Temperature 25.0}}
+							<h4 style="color: red">Warning: Temperature is too high!!! (Over 25C)</h4>
+						{{end}}
 					</div>
 					<div style="padding-top: 20px">
 						<button live-click="temp-up" class="btn btn-success btn-sm">+0.1C</button> - 
 						<button live-click="temp-down" class="btn btn-success btn-sm">-0.1C</button>
 					</div>
-					<div style="padding-top: 20px">
+					<div style="padding-top: 20px; padding-bottom: 20px">
 						<button live-click="temp-change" live-value-temperature="2" class="btn btn-success btn-sm">+2C</button> - 
 						<button live-click="temp-change" live-value-temperature="-2" class="btn btn-success btn-sm">-2C</button>
+					</div>
+					<div style="border: 1px solid black; padding: 5px">
+						{{.Assigns.Time}}
+					</div>
+					<div live-update="prepend">
+						{{.Assigns.Status}}
 					</div>
 				</div>
 			<!-- Include to make live work -->
@@ -113,8 +123,21 @@ func main() {
 		model.Status = data.(string)
 		return model, nil
 	})
+	h.HandleSelf("time", func(ctx context.Context, s live.Socket, data interface{}) (interface{}, error) {
+		model := NewThermoModel(ctx, s)
+		model.Time = data.(string)
+		return model, nil
+	})
 
-	http.Handle("/thermostat", live.NewHttpHandler(live.NewCookieStore("session-name", []byte("weak-secret")), h))
+	lh := live.NewHttpHandler(live.NewCookieStore("session-name", []byte("weak-secret")), h)
+	go func() {
+		for {
+			lh.Broadcast("time", time.Now().Format(time.RFC1123))
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	http.Handle("/thermostat", lh)
 	http.Handle("/live.js", live.Javascript{})
 	http.ListenAndServe(":8080", nil)
 }
